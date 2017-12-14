@@ -1,0 +1,2 @@
+# AspNetCoreMultitenantMicroservicesArchitecture
+Multitenant Microservices Architecture
