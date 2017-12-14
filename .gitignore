@@ -1,0 +1,9 @@
+.vs/
+AspNetCoreMultitenantMicroservicesArchitecture/obj/
+DefaultService/bin/
+DefaultService/obj/
+Tenant1Service/obj/
+Tenant2Service/obj/
+Tenant2Service/bin/
+AspNetCoreMultitenantMicroservicesArchitecture/bin/
+Tenant1Service/bin/
