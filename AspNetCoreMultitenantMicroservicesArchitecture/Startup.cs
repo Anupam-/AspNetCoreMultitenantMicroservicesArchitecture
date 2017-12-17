@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -10,9 +8,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Autofac;
 using Autofac.Multitenant;
 using Microsoft.AspNetCore.Http;
-using AspNetCoreMultitenantMicroservicesArchitecture.Proxies;
-using AspNetCoreMultitenantMicroservicesArchitecture.UI.Proxies;
 using Autofac.Extensions.DependencyInjection;
+using System.Reflection;
+using Proxies;
+using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using AspNetCoreMultitenantMicroservicesArchitecture.UI;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Internal;
 
 namespace AspNetCoreMultitenantMicroservicesArchitecture
 {
@@ -32,38 +35,41 @@ namespace AspNetCoreMultitenantMicroservicesArchitecture
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
+            //services.AddScoped<IControllerActivator, MyControllerActivator>();
+            services.AddScoped<IActionSelector, TenantActionSelector>();
 
             // First, create your application-level defaults using a standard
             // ContainerBuilder, just as you are used to.
             var builder = new ContainerBuilder();
-            builder.RegisterType<Controllers.HomeController>();
+            // default controller dependency
+            // however this is not required as framework will register all controller present or referenced in application
+            //builder.RegisterType<DefaultControllers.HomeController>();
+            // default service dependency
+            builder.RegisterType<DefaultServiceProxy>().As<IServiceProxy>();
+
             builder.RegisterType<HttpContextAccessor>().As<IHttpContextAccessor>().SingleInstance();
-            builder.RegisterType<DefaultServiceProxy>().As<IServiceProxy>().SingleInstance();
+            builder.RegisterType<TenantResolverStrategy>().As<ITenantIdentificationStrategy>();
+            builder.RegisterGeneric(typeof(Logger<>)).As(typeof(ILogger<>)).InstancePerLifetimeScope();
 
             builder.Populate(services);
 
             var appContainer = builder.Build();
 
-            // Once you've built the application-level default container, you
-            // need to create a tenant identification strategy. The details of this
-            // are discussed later on.
-            var tenantIdentifier = new RequestParameterStrategy(appContainer.Resolve<IHttpContextAccessor>());
 
-            // Adding the tenant ID strategy into the container so controllers
-            // can display output about the current tenant.
-            builder.RegisterInstance(tenantIdentifier).As<ITenantIdentificationStrategy>();
-
-
-            // Now create the multitenant container using the application
-            // container and the tenant identification strategy.
-            var mtc = new MultitenantContainer(tenantIdentifier, appContainer);
+            // Now create the multitenant container 
+            var mtc = new MultitenantContainer(appContainer.Resolve<ITenantIdentificationStrategy>(), appContainer);
 
             // Configure the overrides for each tenant by passing in the tenant ID
-            // and a lambda that takes a ContainerBuilder.
-            mtc.ConfigureTenant("1", b => b.RegisterType<Tenant1ServiceProxy>().As<IServiceProxy>().InstancePerDependency());
-            mtc.ConfigureTenant("2", b => b.RegisterType<Tenant2ServiceProxy>().As<IServiceProxy>().InstancePerDependency());
+            mtc.ConfigureTenant("tenant1", b =>
+            {
+                b.RegisterType<Tenant1ServiceProxy>().As<IServiceProxy>().InstancePerDependency();
+            });
+            mtc.ConfigureTenant("tenant2", b =>
+            {
+                b.RegisterType<Tenant2ServiceProxy>().As<IServiceProxy>().InstancePerDependency();
+            });
+            
 
-            // Now you can use the multitenant container to resolve instances.
             ApplicationContainer = mtc;
             return new AutofacServiceProvider(appContainer);
         }
@@ -87,7 +93,7 @@ namespace AspNetCoreMultitenantMicroservicesArchitecture
             {
                 routes.MapRoute(
                     name: "default",
-                    template: "{tenant=1}/{controller=Home}/{action=Index}/{id?}");
+                    template: "{tenant=default}/{controller=Home}/{action=Index}/{id?}");
             });
         }
     }

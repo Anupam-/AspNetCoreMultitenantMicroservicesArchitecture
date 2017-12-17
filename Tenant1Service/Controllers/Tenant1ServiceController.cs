@@ -3,17 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Proxies;
+using ServiceResultModels;
 
-namespace DefaultService.Controllers
+namespace Tenant1Service.Controllers
 {
     [Route("api/[controller]")]
-    public class ValuesController : Controller
+    public class Tenant1ServiceController : Controller
     {
         // GET api/values
         [HttpGet]
-        public IEnumerable<string> Get()
+        public IEnumerable<UserModel> Get()
         {
-            return new string[] { "value1", "value2" };
+            return FakeUsers.All("tenant1");
         }
 
         // GET api/values/5

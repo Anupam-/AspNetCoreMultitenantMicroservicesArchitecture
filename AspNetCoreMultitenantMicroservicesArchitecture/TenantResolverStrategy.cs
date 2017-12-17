@@ -1,16 +1,13 @@
 ﻿using Autofac.Multitenant;
 using Microsoft.AspNetCore.Http;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace AspNetCoreMultitenantMicroservicesArchitecture
 {
-    public class RequestParameterStrategy : ITenantIdentificationStrategy
+    public class TenantResolverStrategy : ITenantIdentificationStrategy
     {
         private IHttpContextAccessor _httpContextAccessor;
-        public RequestParameterStrategy(IHttpContextAccessor httpContextAccessor)
+        public TenantResolverStrategy(IHttpContextAccessor httpContextAccessor)
         {
             _httpContextAccessor = httpContextAccessor;
         }
@@ -22,7 +19,9 @@ namespace AspNetCoreMultitenantMicroservicesArchitecture
                 var context = _httpContextAccessor.HttpContext;
                 if (context != null && context.Request != null)
                 {
-                    tenantId = context.Request.HttpContext.Items["tenant"];
+                    // get very first segment
+                    var uriSeg = context.Request.Path.Value.Split('/');
+                    tenantId = uriSeg[1];
                 }
             }
             catch (Exception)
@@ -30,7 +29,7 @@ namespace AspNetCoreMultitenantMicroservicesArchitecture
                 // Happens at app startup in IIS 7.0
             }
 
-            return tenantId != null;
+            return (tenantId != null || tenantId == (object)"" );
         }
     }
 }

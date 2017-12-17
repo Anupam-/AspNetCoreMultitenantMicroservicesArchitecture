@@ -3,17 +3,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using ServiceResultModels;
 
-namespace Tenant1Service.Controllers
+namespace DefaultService.Controllers
 {
     [Route("api/[controller]")]
-    public class ValuesController : Controller
+    public class DefaultServiceController : Controller
     {
         // GET api/values
         [HttpGet]
-        public IEnumerable<string> Get()
+        public IEnumerable<UserModel> Get()
         {
-            return new string[] { "value1", "value2" };
+            return new List<UserModel> {
+                new UserModel{Id=1,FirstName="Default",LastName="Default", Profile="Default" }
+            };
         }
 
         // GET api/values/5
